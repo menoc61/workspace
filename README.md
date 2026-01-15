@@ -1,227 +1,285 @@
-#!/bin/bash
+# TP Oracle & MySQL - Guide d'Utilisation
 
-# ============================================
-# TP Oracle & MySQL - EXECUTION AUTOMATIQUE
-# ============================================
+## Configuration utilisee
 
-set -e  # Stop on any error
+### MySQL
+- **Hote**: localhost
+- **Port**: 3306
+- **Utilisateur**: root
+- **Mot de passe**: (aucun - vide)
+- **Nombre d'enregistrements**: 25
 
-echo "========================================"
-echo "  TP ORACLE & MYSQL - EXECUTION AUTO"
-echo "========================================"
-echo ""
+### Oracle
+- **Utilisateur**: sys as sysdba
+- **Mot de passe**: momenic61
 
-# Couleurs pour les messages
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+## Structure des fichiers
 
-# Variables de configuration
-MYSQL_HOST="localhost"
-MYSQL_PORT="3306"
-MYSQL_USER="root"
-MYSQL_PWD=""  # Pas de mot de passe
-ORACLE_USER="sys"
-ORACLE_PWD="momenic61"
-WORKSPACE="/c/Users/gille/Desktop/workspace/DB_TD/workspace"
+```
+/workspace/
+├── TP_Oracle_MySQL_Solutions.md    # Document complet avec toutes les commandes
+├── README.md                        # Ce fichier
+├── EXECUTION_RAPIDE.sh             # Script d'information
+├── comparaison_performances.png    # Graphique de comparaison
+├── scripts_mysql/
+│   ├── 01_creation_base.sql        # Creation de la base de donnees
+│   ├── 02_creation_tables.sql      # Creation des tables (avec/sans index)
+│   ├── 03_procedures_insertion.sql # Procedures d'insertion
+│   ├── 04_execution_insertions.sql # Execution avec mesure du temps
+│   ├── 05_comparaison_performances.sql # Tests de performance
+│   ├── 06_analyse_et_plan.sql      # Analyse et plans d'execution
+│   └── 07_script_rapide.sh         # Script bash pour execution automatique
+└── scripts_oracle/
+    ├── 01_creation_schema.sql      # Creation du schema approvisionnement
+    └── 02_manipulation_donnees.sql # Manipulation des donnees Oracle
+```
 
-# Fonctions utilitaires
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
+---
 
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+## PARTIE 1: ORACLE (Schema Approvisionnement)
 
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
+### Methode 1: Ligne de commande SQL*Plus
 
-# ============================================
-# PARTIE 1: ORACLE
-# ============================================
+```bash
+# 1. Lancer SQL*Plus avec connexion sysdba
+sqlplus sys/momenic61 as sysdba
 
-echo ""
-log_info "=== PARTIE 1: ORACLE ==="
-echo ""
+# 2. Executer le script de creation du schema
+@/workspace/scripts_oracle/01_creation_schema.sql
 
-# Script 1: Creation du schema
-log_info "Création du schema approvisionnement..."
-log_info "Exécution: sqlplus sys/momenic61 as sysdba"
-
-# Create a temporary SQL file for Oracle commands
-cat > /tmp/oracle_script1.sql << 'EOF'
-@${WORKSPACE}/scripts_oracle/01_creation_schema.sql
-EXIT;
-EOF
-
-# Replace variable in the temp file
-sed -i "s|\${WORKSPACE}|${WORKSPACE}|g" /tmp/oracle_script1.sql
-
-# Execute Oracle script 1
-echo "exit" | sqlplus sys/momenic61 as sysdba @/tmp/oracle_script1.sql
-
-if [ $? -eq 0 ]; then
-    log_info "Schema Oracle créé avec succès!"
-else
-    log_error "Erreur lors de la création du schema Oracle"
-    exit 1
-fi
-
-# Script 2: Manipulation des données
-log_info "Manipulation des données Oracle..."
-
-cat > /tmp/oracle_script2.sql << 'EOF'
+# 3. Se deconnecter et se reconnecter avec le nouveau schema
 CONNECT approvisionnement/approvisionnementeam
-@${WORKSPACE}/scripts_oracle/02_manipulation_donnees.sql
+
+# 4. Executer le script de manipulation des donnees
+@/workspace/scripts_oracle/02_manipulation_donnees.sql
+```
+
+### Methode 2: Connexion avec TNS
+
+```bash
+# Si vous avez un fichier tnsnames.ora configure
+sqlplus sys/momenic61@//localhost:1521/xe as sysdba
+```
+
+---
+
+## PARTIE 2: MYSQL (Comparaison Index)
+
+### Methode 1: Execution automatique (Recommande)
+
+```bash
+# Rendre le script executable
+chmod +x /workspace/scripts_mysql/07_script_rapide.sh
+
+# Executer le script automatique
+./workspace/scripts_mysql/07_script_rapide.sh
+```
+
+### Methode 2: Execution manuelle ligne de commande
+
+```bash
+# Connexion MySQL
+mysql -h localhost -P 3306 -u root
+
+# Puis executer les scripts dans l'ordre:
+source /workspace/scripts_mysql/01_creation_base.sql
+source /workspace/scripts_mysql/02_creation_tables.sql
+source /workspace/scripts_mysql/03_procedures_insertion.sql
+source /workspace/scripts_mysql/04_execution_insertions.sql
+source /workspace/scripts_mysql/05_comparaison_performances.sql
+source /workspace/scripts_mysql/06_analyse_et_plan.sql
+```
+
+### Methode 3: Execution depuis le repertoire scripts_mysql
+
+```bash
+cd /workspace/scripts_mysql
+mysql -h localhost -P 3306 -u root < 01_creation_base.sql
+mysql -h localhost -P 3306 -u root < 02_creation_tables.sql
+mysql -h localhost -P 3306 -u root < 03_procedures_insertion.sql
+mysql -h localhost -P 3306 -u root < 04_execution_insertions.sql
+mysql -h localhost -P 3306 -u root < 05_comparaison_performances.sql
+mysql -h localhost -P 3306 -u root < 06_analyse_et_plan.sql
+```
+
+### Methode 4: Copier-Coller
+
+Ouvrir le fichier `/workspace/TP_Oracle_MySQL_Solutions.md` et copier-coller les commandes directement dans MySQL.
+
+---
+
+## Resultats attendus
+
+### Oracle
+- Schema `approvisionnement` cree
+- Donnees du schema `vente` importees (si disponible)
+- Vues et procedures crees
+
+### MySQL
+- Base de donnees `tp_comparaison_index` creee
+- 6 tables creees (3 avec index, 3 sans)
+- 75 enregistrements inseres (25 clients, 25 produits, 25 commandes)
+- 8 tests de performance executes
+- Tableau comparatif genere
+
+---
+
+## Tests de performance MySQL
+
+Les tests comparent les operations suivantes:
+
+1. **SELECT simple avec WHERE** - Recherche par nom
+2. **Recherche par ville** - Count avec condition sur ville
+3. **Jointure clients-commandes** - JOIN avec agregation
+4. **Aggregation par categorie** - GROUP BY avec COUNT et AVG
+5. **Requete complexe avec sous-requete** - EXISTS et sous-requete correlee
+6. **Tri sur plusieurs colonnes** - ORDER BY multi-colonnes
+7. **Mise a jour massive** - UPDATE avec condition range
+8. **Suppression avec condition** - DELETE avec condition
+
+---
+
+## Interpretation des resultats
+
+### Les index ameliorent:
+- **SELECT**: Recherche optimisee (souvent 50-90% plus rapide)
+- **JOIN**: Performance significative sur les jointures
+- **WHERE**: Condition de recherche acceleree
+- **ORDER BY**: Tri accelere
+
+### Les index ralentissent legerement:
+- **INSERT**: Verification des index
+- **UPDATE**: Mise a jour des index
+- **DELETE**: Suppression dans les index
+
+**Note**: Avec seulement 25 enregistrements, les differences seront minimes car les tables sont trop petites pour que les index demontrent leur efficacite complete.
+
+---
+
+## Commandes utiles
+
+### MySQL
+```bash
+# Connexion
+mysql -h localhost -P 3306 -u root
+
+# Voir les bases
+SHOW DATABASES;
+
+# Utiliser une base
+USE tp_comparaison_index;
+
+# Voir les tables
+SHOW TABLES;
+
+# Voir la structure
+DESCRIBE nom_table;
+
+# Voir les index
+SHOW INDEX FROM nom_table;
+
+# Plan d'execution
+EXPLAIN SELECT ...;
+
+# Profiling
+SET profiling = 1;
+SHOW PROFILES;
+
+# Quitter
 EXIT;
-EOF
+```
 
-sed -i "s|\${WORKSPACE}|${WORKSPACE}|g" /tmp/oracle_script2.sql
+### Oracle SQL*Plus
+```bash
+# Lancer
+sqlplus sys/momenic61 as sysdba
 
-echo "exit" | sqlplus approvisionnement/approvisionnementeam @/tmp/oracle_script2.sql
-
-if [ $? -eq 0 ]; then
-    log_info "Données Oracle manipulées avec succès!"
-else
-    log_warning "Erreur lors de la manipulation des données Oracle"
-fi
-
-# ============================================
-# PARTIE 2: MYSQL (si disponible)
-# ============================================
-
-echo ""
-log_info "=== PARTIE 2: MYSQL ==="
-echo ""
-
-# Vérifier si MySQL est disponible
-if command -v mysql &> /dev/null; then
-    log_info "MySQL trouvé, exécution des scripts..."
-    
-    # Fonction pour exécuter un script MySQL
-    execute_mysql_script() {
-        local script_name=$1
-        local script_path="${WORKSPACE}/scripts_mysql/${script_name}"
-        
-        log_info "Exécution de ${script_name}..."
-        
-        if mysql -h ${MYSQL_HOST} -P ${MYSQL_PORT} -u ${MYSQL_USER} < "${script_path}"; then
-            log_info "${script_name} exécuté avec succès!"
-        else
-            log_error "Erreur lors de l'exécution de ${script_name}"
-            exit 1
-        fi
-    }
-    
-    # Exécution des scripts MySQL dans l'ordre
-    MYSQL_SCRIPTS=(
-        "01_creation_base.sql"
-        "02_creation_tables.sql"
-        "03_procedures_insertion.sql"
-        "04_execution_insertions.sql"
-        "05_comparaison_performances.sql"
-        "06_analyse_et_plan.sql"
-    )
-    
-    for script in "${MYSQL_SCRIPTS[@]}"; do
-        execute_mysql_script "$script"
-    done
-    
-    # Vérification MySQL
-    log_info "Vérification MySQL:"
-    mysql -h ${MYSQL_HOST} -P ${MYSQL_PORT} -u ${MYSQL_USER} -e "
-    USE tp_comparaison_index;
-    SHOW TABLES;
-    SELECT '=== CLIENTS ===' as info; SELECT COUNT(*) as total_clients FROM clients_avec_index;
-    SELECT '=== PRODUITS ===' as info; SELECT COUNT(*) as total_produits FROM produits_avec_index;
-    SELECT '=== COMMANDES ===' as info; SELECT COUNT(*) as total_commandes FROM commandes_avec_index;
-    "
-    
-else
-    log_warning "MySQL n'est pas installé ou non accessible"
-    log_info "Seule la partie Oracle a été exécutée"
-fi
-
-# ============================================
-# VERIFICATION ORACLE
-# ============================================
-
-echo ""
-log_info "=== VERIFICATION ORACLE ==="
-echo ""
-
-cat > /tmp/oracle_verif.sql << 'EOF'
+# Connexion standard
 CONNECT approvisionnement/approvisionnementeam
-SELECT '=== TABLES ORACLE ===' as info FROM dual;
+
+# Executer un script
+@/workspace/scripts_oracle/02_manipulation_donnees.sql
+
+# Voir les tables
 SELECT table_name FROM user_tables;
-SELECT '=== VERIFICATION TERMINEE ===' as info FROM dual;
+
+# Quitter
 EXIT;
-EOF
+```
 
-echo "exit" | sqlplus approvisionnement/approvisionnementeam @/tmp/oracle_verif.sql
+---
 
-# ============================================
-# RAPPORT
-# ============================================
+## Depannage
 
-echo ""
-log_info "=== GENERATION DU RAPPORT ==="
-echo ""
+### MySQL
+```bash
+# Verifier si le service est demarre (Linux)
+sudo systemctl status mysql
 
-# Créer un résumé des résultats
-cat > ${WORKSPACE}/rapport_execution.txt << EOF
-========================================
-RAPPORT D'EXECUTION TP ORACLE & MYSQL
-========================================
-Date: $(date)
-Heure: $(date +%H:%M:%S)
-Workspace: ${WORKSPACE}
+# Demarrer le service (Linux)
+sudo systemctl start mysql
 
-PARTIE 1: ORACLE
-----------------
-- Schema 'approvisionnement' créé
-- Scripts Oracle exécutés avec succès
+# Verifier le port
+netstat -tlnp | grep 3306
 
-PARTIE 2: MYSQL
----------------
-$(if command -v mysql &> /dev/null; then echo "- Base créée et scripts exécutés"; else echo "- MySQL non disponible"; fi)
+# Erreur de connexion
+# Verifier les identifiants et le service
+mysql -h localhost -P 3306 -u root -e "SELECT 1"
 
-EOF
+# Si erreur "Access denied"
+# Verifier les privileges
+sudo mysql -u root
+```
 
-log_info "Rapport généré: ${WORKSPACE}/rapport_execution.txt"
+### Oracle
+```bash
+# Verifier le listener (si installe)
+lsnrctl status
 
-# ============================================
-# NETTOYAGE
-# ============================================
+# Connexion sans listener (Oracle Express)
+sqlplus sys/momenic61 as sysdba
 
-rm -f /tmp/oracle_script1.sql /tmp/oracle_script2.sql /tmp/oracle_verif.sql
+# ORA-12541: TNS:no listener
+# Le listener n'est peut-etre pas necessaire pour Oracle Express
 
-# ============================================
-# RESUME
-# ============================================
+# ORA-01034: ORACLE not available
+sqlplus / as sysdba
+STARTUP
 
-echo ""
-echo "========================================"
-log_info "EXECUTION TERMINEE!"
-echo "========================================"
-echo ""
-echo "Résultats:"
-echo "✅ Schema Oracle 'approvisionnement' créé et configuré"
-if command -v mysql &> /dev/null; then
-    echo "✅ Scripts MySQL exécutés"
-else
-    echo "⚠️  MySQL non disponible"
-fi
-echo "✅ Rapport d'exécution généré"
-echo ""
-echo "Fichiers importants:"
-echo "  - ${WORKSPACE}/rapport_execution.txt (Résumé)"
-echo "  - ${WORKSPACE}/TP_Oracle_MySQL_Solutions.md (Analyse complète)"
-echo ""
-log_info "Bonne chance pour votre TP!"
+# ORA-01017: invalid username/password
+# Verifier les identifiants: sys/momenic61 as sysdba
+```
 
-# Rendre le script exécutable
-chmod +x "${BASH_SOURCE[0]}"
+---
+
+## Notes importantes
+
+1. **MySQL**: Avec root sans mot de passe, assurez-vous que l'acces est autorise
+2. **Oracle**: Utilisez `sys/momenic61 as sysdba` pour la connexion admin
+3. **Donnees**: Avec 25 enregistrements, les tests seront tres rapides
+4. **Resultats**: Les gains seront minimes avec peu de donnees (c'est normal)
+
+---
+
+## Pour le rapport TP
+
+Structure suggeree:
+
+1. **Introduction**: Objectif du TP - comparaison des performances avec/sans index
+2. **Configuration**: Decrire l'environnement de test (localhost, ports, identifiants)
+3. **Partie Oracle**: Creation du schema approvisionnement
+4. **Partie MySQL**: Comparaison des performances avec 25 enregistrements
+5. **Resultats**: Tableaux comparatifs avec temps d'execution
+6. **Analyse**: Interpretation des gains/pertes (meme minimes avec peu de donnees)
+7. **Conclusion**: Importance des index pour les bases de donnees volumineuses
+
+---
+
+**Bon courage pour votre TP !**
+> on window using *ps1* try : 
+powershell```
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\EXECUTION_AUTO_WINDOWS.ps1
+```
+
+>Note: change and ajust `WORKSPACE="/c/Users/gille/Desktop/workspace/DB_TD/workspace"` in *EXECUTION_RAPIDE.sh*
