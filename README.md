@@ -1,5 +1,17 @@
 # TP Oracle & MySQL - Guide d'Utilisation
 
+## Diagramme ERD (Entity-Relationship Diagram)
+
+Le schema de la base de donnees "Boutique" est compose de 4 entites principales:
+
+![Diagramme ERD](evidence/ERD.png)
+
+**Relations:**
+- CLIENT (1) ---- (*) ADRESSE: Composition (un client a plusieurs adresses)
+- CLIENT (*) ---- (1..*) PRODUIT: Association avec FACTURE comme classe d'association
+
+---
+
 ## Configuration utilisee
 
 ### MySQL
@@ -13,30 +25,33 @@
 - **Utilisateur**: sys as sysdba
 - **Mot de passe**: momenic61
 
+---
+
 ## Structure des fichiers
 
 ```
 /workspace/
 ├── TP_Oracle_MySQL_Solutions.md    # Document complet avec toutes les commandes
 ├── README.md                        # Ce fichier
-├── EXECUTION_RAPIDE.sh             # Script d'information
+├── EXECUTION_RAPIDE.sh             # Script d'information complet
 ├── comparaison_performances.png    # Graphique de comparaison
 ├── scripts_mysql/
-│   ├── 01_creation_base.sql        # Creation de la base de donnees
-│   ├── 02_creation_tables.sql      # Creation des tables (avec/sans index)
-│   ├── 03_procedures_insertion.sql # Procedures d'insertion
-│   ├── 04_execution_insertions.sql # Execution avec mesure du temps
-│   ├── 05_comparaison_performances.sql # Tests de performance
-│   ├── 06_analyse_et_plan.sql      # Analyse et plans d'execution
-│   └── 07_script_rapide.sh         # Script bash pour execution automatique
+│   ├── 01_creation_base.sql
+│   ├── 02_creation_tables.sql
+│   ├── 03_procedures_insertion.sql
+│   ├── 04_execution_insertions.sql
+│   ├── 05_comparaison_performances.sql
+│   ├── 06_analyse_et_plan.sql
+│   └── 07_script_rapide.sh
 └── scripts_oracle/
     ├── 01_creation_schema.sql      # Creation du schema approvisionnement
-    └── 02_manipulation_donnees.sql # Manipulation des donnees Oracle
+    ├── 02_creation_tables.sql      # Tables + donnees (CLIENT, ADRESSE, PRODUIT, FACTURE)
+    └── 03_manipulation_donnees.sql # Vues, procedures, triggers
 ```
 
 ---
 
-## PARTIE 1: ORACLE (Schema Approvisionnement)
+## PARTIE 1: ORACLE (Schema Boutique)
 
 ### Methode 1: Ligne de commande SQL*Plus
 
@@ -49,9 +64,13 @@ sqlplus sys/momenic61 as sysdba
 
 # 3. Se deconnecter et se reconnecter avec le nouveau schema
 CONNECT approvisionnement/approvisionnementeam
+Mot de passe: approvisionnementeam
 
-# 4. Executer le script de manipulation des donnees
-@/workspace/scripts_oracle/02_manipulation_donnees.sql
+# 4. Creer les tables et inserer les donnees
+@/workspace/scripts_oracle/02_creation_tables.sql
+
+# 5. Executer les manipulations avancees (vues, procedures, triggers)
+@/workspace/scripts_oracle/03_manipulation_donnees.sql
 ```
 
 ### Methode 2: Connexion avec TNS
@@ -60,6 +79,55 @@ CONNECT approvisionnement/approvisionnementeam
 # Si vous avez un fichier tnsnames.ora configure
 sqlplus sys/momenic61@//localhost:1521/xe as sysdba
 ```
+
+### Donnees inserees dans Oracle
+
+**CLIENT (5 enregistrements):**
+| num | nom | prenom | ddn | tel | genre |
+|-----|-----|--------|-----|-----|-------|
+| 1 | Dupont | Jean | 1985-03-15 | 0612345678 | m |
+| 2 | Martin | Marie | 1990-07-22 | 0687654321 | f |
+| 3 | Durand | Pierre | 1978-11-08 | 0611223344 | m |
+| 4 | Bernard | Sophie | 1995-02-14 | 0655443322 | f |
+| 5 | Petit | Thomas | 1982-09-30 | 0633445566 | m |
+
+**ADRESSE (6 enregistrements):**
+| num (FK) | rue | cp | ville |
+|----------|-----|-----|-------|
+| 1 | Rue de la Paix | 75001 | Paris |
+| 1 | Avenue des Champs | 69002 | Lyon |
+| 2 | Boulevard Saint-Michel | 13001 | Marseille |
+| 3 | Place de la Republique | 31000 | Toulouse |
+| 4 | Rue Saint-Catherine | 33000 | Bordeaux |
+| 5 | Avenue de la Mer | 06000 | Nice |
+
+**PRODUIT (10 enregistrements):**
+| num | designation | prix | stock |
+|-----|-------------|------|-------|
+| 1 | Ordinateur portable | 899.99 | 25 |
+| 2 | Smartphone | 599.99 | 50 |
+| 3 | Tablette | 349.99 | 30 |
+| 4 | Casque audio | 149.99 | 100 |
+| 5 | Clavier sans fil | 79.99 | 75 |
+| 6 | Souris sans fil | 49.99 | 80 |
+| 7 | Ecran 27 pouces | 399.99 | 15 |
+| 8 | Imprimante | 199.99 | 20 |
+| 9 | Disque SSD 1To | 109.99 | 60 |
+| 10 | Cle USB 64Go | 19.99 | 200 |
+
+**FACTURE (10 enregistrements):**
+| num | num_client | num_produit | qte |
+|-----|------------|-------------|-----|
+| 1 | 1 | 1 | 1 |
+| 1 | 1 | 4 | 2 |
+| 2 | 2 | 2 | 1 |
+| 3 | 3 | 7 | 1 |
+| 4 | 4 | 3 | 2 |
+| 5 | 5 | 5 | 1 |
+| 5 | 5 | 6 | 2 |
+| 6 | 1 | 9 | 3 |
+| 7 | 2 | 10 | 5 |
+| 8 | 3 | 8 | 1 |
 
 ---
 
@@ -90,32 +158,20 @@ source /workspace/scripts_mysql/05_comparaison_performances.sql
 source /workspace/scripts_mysql/06_analyse_et_plan.sql
 ```
 
-### Methode 3: Execution depuis le repertoire scripts_mysql
-
-```bash
-cd /workspace/scripts_mysql
-mysql -h localhost -P 3306 -u root < 01_creation_base.sql
-mysql -h localhost -P 3306 -u root < 02_creation_tables.sql
-mysql -h localhost -P 3306 -u root < 03_procedures_insertion.sql
-mysql -h localhost -P 3306 -u root < 04_execution_insertions.sql
-mysql -h localhost -P 3306 -u root < 05_comparaison_performances.sql
-mysql -h localhost -P 3306 -u root < 06_analyse_et_plan.sql
-```
-
-### Methode 4: Copier-Coller
-
-Ouvrir le fichier `/workspace/TP_Oracle_MySQL_Solutions.md` et copier-coller les commandes directement dans MySQL.
-
 ---
 
 ## Resultats attendus
 
-### Oracle
+### Oracle - Boutique Schema
 - Schema `approvisionnement` cree
-- Donnees du schema `vente` importees (si disponible)
-- Vues et procedures crees
+- 5 clients avec adresses
+- 10 produits avec prix et stock
+- 10 lignes de facture
+- Vues: VUE_RESUME_STOCK
+- Procedures: AUGMENTER_STOCK, NOUVELLE_FACTURE
+- Trigger: TRG_ALERTE_STOCK
 
-### MySQL
+### MySQL - Comparaison Index
 - Base de donnees `tp_comparaison_index` creee
 - 6 tables creees (3 avec index, 3 sans)
 - 75 enregistrements inseres (25 clients, 25 produits, 25 commandes)
@@ -126,33 +182,14 @@ Ouvrir le fichier `/workspace/TP_Oracle_MySQL_Solutions.md` et copier-coller les
 
 ## Tests de performance MySQL
 
-Les tests comparent les operations suivantes:
-
-1. **SELECT simple avec WHERE** - Recherche par nom
-2. **Recherche par ville** - Count avec condition sur ville
-3. **Jointure clients-commandes** - JOIN avec agregation
-4. **Aggregation par categorie** - GROUP BY avec COUNT et AVG
-5. **Requete complexe avec sous-requete** - EXISTS et sous-requete correlee
-6. **Tri sur plusieurs colonnes** - ORDER BY multi-colonnes
-7. **Mise a jour massive** - UPDATE avec condition range
-8. **Suppression avec condition** - DELETE avec condition
-
----
-
-## Interpretation des resultats
-
-### Les index ameliorent:
-- **SELECT**: Recherche optimisee (souvent 50-90% plus rapide)
-- **JOIN**: Performance significative sur les jointures
-- **WHERE**: Condition de recherche acceleree
-- **ORDER BY**: Tri accelere
-
-### Les index ralentissent legerement:
-- **INSERT**: Verification des index
-- **UPDATE**: Mise a jour des index
-- **DELETE**: Suppression dans les index
-
-**Note**: Avec seulement 25 enregistrements, les differences seront minimes car les tables sont trop petites pour que les index demontrent leur efficacite complete.
+1. SELECT simple avec WHERE
+2. Recherche par ville
+3. Jointure clients-commandes
+4. Aggregation par categorie
+5. Requete complexe avec sous-requete
+6. Tri sur plusieurs colonnes
+7. Mise a jour massive
+8. Suppression avec condition
 
 ---
 
@@ -198,10 +235,13 @@ sqlplus sys/momenic61 as sysdba
 CONNECT approvisionnement/approvisionnementeam
 
 # Executer un script
-@/workspace/scripts_oracle/02_manipulation_donnees.sql
+@/workspace/scripts_oracle/02_creation_tables.sql
 
 # Voir les tables
 SELECT table_name FROM user_tables;
+
+# Voir les donnees d'une table
+SELECT * FROM client;
 
 # Quitter
 EXIT;
@@ -223,24 +263,13 @@ sudo systemctl start mysql
 netstat -tlnp | grep 3306
 
 # Erreur de connexion
-# Verifier les identifiants et le service
 mysql -h localhost -P 3306 -u root -e "SELECT 1"
-
-# Si erreur "Access denied"
-# Verifier les privileges
-sudo mysql -u root
 ```
 
 ### Oracle
 ```bash
-# Verifier le listener (si installe)
-lsnrctl status
-
 # Connexion sans listener (Oracle Express)
 sqlplus sys/momenic61 as sysdba
-
-# ORA-12541: TNS:no listener
-# Le listener n'est peut-etre pas necessaire pour Oracle Express
 
 # ORA-01034: ORACLE not available
 sqlplus / as sysdba
@@ -252,34 +281,24 @@ STARTUP
 
 ---
 
-## Notes importantes
-
-1. **MySQL**: Avec root sans mot de passe, assurez-vous que l'acces est autorise
-2. **Oracle**: Utilisez `sys/momenic61 as sysdba` pour la connexion admin
-3. **Donnees**: Avec 25 enregistrements, les tests seront tres rapides
-4. **Resultats**: Les gains seront minimes avec peu de donnees (c'est normal)
-
----
-
 ## Pour le rapport TP
 
 Structure suggeree:
 
-1. **Introduction**: Objectif du TP - comparaison des performances avec/sans index
-2. **Configuration**: Decrire l'environnement de test (localhost, ports, identifiants)
-3. **Partie Oracle**: Creation du schema approvisionnement
-4. **Partie MySQL**: Comparaison des performances avec 25 enregistrements
-5. **Resultats**: Tableaux comparatifs avec temps d'execution
-6. **Analyse**: Interpretation des gains/pertes (meme minimes avec peu de donnees)
-7. **Conclusion**: Importance des index pour les bases de donnees volumineuses
+1. **Introduction**: Objectif du TP, presentation du schema Boutique
+2. **Partie Oracle**: 
+   - Creation du schema approvisionnement
+   - Tables CLIENT, ADRESSE, PRODUIT, FACTURE
+   - Relations et contraintes
+   - Vues, procedures et triggers
+3. **Partie MySQL**: 
+   - Comparaison des performances avec/sans index
+   - 25 enregistrements par table
+   - Resultats des tests
+4. **Resultats**: Tableaux comparatifs
+5. **Analyse**: Interpretation des gains/pertes
+6. **Conclusion**: Importance des index
 
 ---
 
 **Bon courage pour votre TP !**
-> on window using *ps1* try : 
-powershell```
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-.\EXECUTION_AUTO_WINDOWS.ps1
-```
-
->Note: change and ajust `WORKSPACE="/c/Users/gille/Desktop/workspace/DB_TD/workspace"` in *EXECUTION_RAPIDE.sh*
